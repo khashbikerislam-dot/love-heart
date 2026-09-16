@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>I LOVE YOU ❤️</title>
+<style>
+    html, body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+    }
+    body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: Arial, sans-serif;
+    }
+    canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+</style>
+</head>
+<body>
+<canvas id="heart"></canvas>
+
+<script>
+"use strict";
+
+const canvas = document.getElementById("heart");
+const ctx = canvas.getContext("2d");
+
+let width = 0;
+let height = 0;
+let dpr = 1;
+let particles = [];
+
+const TEXT = "I LOVE YOU";
+
+function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    width = window.innerWidth;
+    height = window.innerHeight;
+
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    makeHeart();
+}
+
+function heartPoint(t, scale) {
+    const x = 16 * Math.pow(Math.sin(t), 3);
+    const y =
+        13 * Math.cos(t)
+        - 5 * Math.cos(2 * t)
+        - 2 * Math.cos(3 * t)
+        - Math.cos(4 * t);
+
+    return {
+        x: x * scale,
+        y: -y * scale
+    };
+}
+
+function insideHeart(x, y, scale) {
+    const X = x / scale;
+    const Y = -y / scale;
+
+    const value =
+        Math.pow(X * X + Y * Y - 1, 3)
+        - X * X * Y * Y * Y;
+
+    return value <= 0;
+}
+
+function makeHeart() {
+    particles = [];
+
+    const scale = Math.min(width, height) / 31;
+    const centerX = width / 2;
+    const centerY = height / 2 - scale * 0.2;
+
+    // Сетка — она гарантирует, что сердце будет заполнено.
+    const stepX = Math.max(48, scale * 3.2);
+    const stepY = Math.max(18, scale * 1.25);
+
+    for (let y = -14 * scale; y <= 18 * scale; y += stepY) {
+        for (let x = -16 * scale; x <= 16 * scale; x += stepX) {
+
+            // Несколько точек проверки вокруг надписи.
+            const fits =
+                insideHeart(x - 1.4 * scale, y, scale) &&
+                insideHeart(x + 1.4 * scale, y, scale) &&
+                insideHeart(x, y - 0.6 * scale, scale) &&
+                insideHeart(x, y + 0.6 * scale, scale);
+
+            if (fits) {
+                particles.push({
+                    x: centerX + x,
+                    y: centerY + y,
+                    size: Math.max(9, scale * 0.58 + Math.random() * 2.5),
+                    alpha: 0.45 + Math.random() * 0.5,
+                    phase: Math.random() * Math.PI * 2,
+                    speed: 0.001 + Math.random() * 0.0015,
+                    rotation: (Math.random() - 0.5) * 0.08
+                });
+            }
+        }
+    }
+
+    // Контур сердца — делает форму заметнее и аккуратнее.
+    for (let i = 0; i < 260; i++) {
+        const t = (i / 260) * Math.PI * 2;
+        const p = heartPoint(t, scale);
+
+        particles.push({
+            x: centerX + p.x,
+            y: centerY + p.y,
+            size: Math.max(8, scale * 0.48 + Math.random() * 2),
+            alpha: 0.65 + Math.random() * 0.35,
+            phase: Math.random() * Math.PI * 2,
+            speed: 0.001 + Math.random() * 0.0015,
+            rotation: (Math.random() - 0.5) * 0.12
+        });
+    }
+}
+
+function animate(time) {
+    ctx.clearRect(0, 0, width, height);
+
+    const pulse =
+        1 + Math.sin(time * 0.002) * 0.025;
+
+    ctx.save();
+
+    ctx.translate(width / 2, height / 2);
+    ctx.scale(pulse, pulse);
+    ctx.translate(-width / 2, -height / 2);
+
+    for (const p of particles) {
+        const movement =
+            Math.sin(time * p.speed + p.phase) * 1.1;
+
+        const flicker =
+            Math.sin(time * 0.003 + p.phase) * 0.12;
+
+        const alpha =
+            Math.max(0.15, Math.min(1, p.alpha + flicker));
+
+        ctx.save();
+
+        ctx.translate(p.x, p.y + movement);
+        ctx.rotate(p.rotation);
+
+        ctx.font = `bold ${p.size}px Arial`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        // Мягкое неоновое свечение.
+        ctx.shadowColor = "rgba(0, 130, 255, 0.95)";
+        ctx.shadowBlur = 14;
+
+        ctx.fillStyle = `rgba(35, 150, 255, ${alpha})`;
+        ctx.fillText(TEXT, 0, 0);
+
+        // Дополнительный ореол.
+        ctx.shadowBlur = 30;
+        ctx.fillStyle = `rgba(0, 100, 255, ${alpha * 0.16})`;
+        ctx.fillText(TEXT, 0, 0);
+
+        ctx.restore();
+    }
+
+    ctx.restore();
+
+    requestAnimationFrame(animate);
+}
+
+window.addEventListener("resize", resize);
+
+resize();
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
